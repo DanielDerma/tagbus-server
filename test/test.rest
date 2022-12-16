@@ -1,9 +1,4 @@
-
-GET http://localhost:8080/hello-world
-
-
-###
-GET http://localhost:8080/sendPushNotification
+GET http://localhost:8080/notifications/send
 Content-Type: application/json
 
 {

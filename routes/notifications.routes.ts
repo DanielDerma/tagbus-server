@@ -1,26 +1,35 @@
-const { Expo } = require("expo-server-sdk");
-const { Router } = require("express");
-const router = Router();
+import { Expo, ExpoPushMessage } from "expo-server-sdk";
+import { Router } from "express";
 
-const admin = require("firebase-admin");
+import admin from "firebase-admin";
+import { Timestamp } from "firebase-admin/firestore";
+
+import { NotificationType, TokenDocType } from "../types";
+
+const router = Router();
 const db = admin.firestore();
-const { Timestamp } = admin.firestore;
 
 let expo = new Expo();
 
-router.get("/sendPushNotification", async (req, res) => {
+router.get("/send", async (req, res) => {
   const { title, body, route } = req.body;
   const users = await db.collection("users").where("route", "==", route).get();
 
   const validIds = users.docs.map((user) => user.id);
+
   const validTokens = validIds.map(async (uid) => {
     const tokenDoc = await db.collection("tokens").doc(uid).get();
-    return tokenDoc.data().token;
+
+    if (tokenDoc.exists) {
+      const tokenData = tokenDoc.data() as TokenDocType;
+      return tokenData.token;
+    }
+    return null;
   });
 
   const allTokens = await Promise.all(validTokens);
 
-  let messages = [];
+  let messages = [] as ExpoPushMessage[];
   for (let pushToken of allTokens) {
     if (!Expo.isExpoPushToken(pushToken)) {
       console.error(`Push token ${pushToken} is not a valid Expo push token`);
@@ -32,23 +41,21 @@ router.get("/sendPushNotification", async (req, res) => {
       body,
       sound: "default",
       to: pushToken,
-      createdAt: Timestamp.now(),
-      data: { withSome: "data" },
     });
   }
-  const alumno = {
-    grupo: "a",
-    grado: 5,
-    calificaion: 6,
-  };
 
+  // send push notifications
   let chunks = expo.chunkPushNotifications(messages);
-  let tickets = [];
   for (let chunk of chunks) {
+    const firebaseNotification: NotificationType = {
+      title,
+      body,
+      route,
+      createdAt: Timestamp.now(),
+    };
     try {
-      let ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-      console.log(ticketChunk);
-      tickets.push(...ticketChunk);
+      await expo.sendPushNotificationsAsync(chunk);
+      await db.collection("notifications").add(firebaseNotification);
     } catch (error) {
       console.error(error);
     }
@@ -57,4 +64,4 @@ router.get("/sendPushNotification", async (req, res) => {
   res.json({ messages });
 });
 
-module.exports = router;
+export default router;
