@@ -1,0 +1,22 @@
+{
+  "name": "tagbus-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "expo-server-sdk": "^3.7.0",
+    "express": "^4.18.2",
+    "firebase-admin": "^11.4.0"
+  }
+}
